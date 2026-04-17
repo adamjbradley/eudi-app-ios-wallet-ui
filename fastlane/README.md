@@ -39,6 +39,22 @@ Run tests
 
 Build & Deploy Wallet
 
+### ios register_app_ids
+
+```sh
+[bundle exec] fastlane ios register_app_ids
+```
+
+Register AU + IN App IDs and App Store Connect app records (idempotent)
+
+### ios deploy_all
+
+```sh
+[bundle exec] fastlane ios deploy_all
+```
+
+Build & deploy multi-country flavors (AU/IN) to TestFlight
+
 ### ios github_release
 
 ```sh

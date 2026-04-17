@@ -174,9 +174,12 @@ platform :ios do
     end
   end
 
-  desc "Build & deploy all multi-country flavors (EUDI/AU/IN) to TestFlight"
+  desc "Build & deploy multi-country flavors (AU/IN) to TestFlight"
+  # EUDI is owned by the EU Commission's Apple team, so we cannot TestFlight it
+  # under Adelaidensis Pty Ltd. Testers who need the EU PID flavor install the
+  # official EUDI Wallet from the App Store or the upstream TestFlight.
   lane :deploy_all do
-    flavors = ['eudi', 'au', 'in']
+    flavors = ['au', 'in']
     flavors.each do |flavor|
       UI.header "Deploying flavor: #{flavor}"
       Dotenv.overload(File.expand_path("../.env.#{flavor}", __FILE__))
