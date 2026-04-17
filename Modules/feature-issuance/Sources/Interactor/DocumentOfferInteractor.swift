@@ -51,7 +51,6 @@ final actor DocumentOfferInteractorImpl: DocumentOfferInteractor {
       let codeMaxLength = 6
 
       let offer = try await walletController.resolveOfferUrlDocTypes(offerUri: uri)
-      let hasPidStored = await !walletController.fetchIssuedDocuments(with: [.mDocPid, .sdJwtPid]).isEmpty
 
       if let spec = offer.txCodeSpec,
          let codeLength = spec.length,
@@ -59,22 +58,13 @@ final actor DocumentOfferInteractorImpl: DocumentOfferInteractor {
         return .failure(WalletCoreError.transactionCodeFormat(["\(codeMinLength)", "\(codeMaxLength)"]))
       }
 
-      let hasPidInOffer = offer.docModels.first(
-        where: { offer in
-          let identifier = DocumentTypeIdentifier(
-            rawValue: offer.docType.ifNilOrEmpty {
-              offer.vct.ifNilOrEmpty {
-                offer.credentialConfigurationIdentifier
-              }
-            }
-          )
-          return identifier == .mDocPid || identifier == .sdJwtPid
-        }
-      ) != nil
-
-      if !hasPidStored && !hasPidInOffer {
-        return .failure(WalletCoreError.missingPid)
-      }
+      // Upstream iOS blocks any issuance unless the wallet already holds an EUDI
+      // PID or the current offer includes one, surfacing as "Houston we have a
+      // problem! Wallet needs to be activated first with a National ID". For the
+      // multi-country flavors (AU/IN) the concept of a single pre-requisite
+      // identity credential doesn't apply — an AU or IN user bootstraps with
+      // their own country's PID. The Android wallet has no equivalent gate, so
+      // we drop it here to match parity.
 
       return .success(offer.transformToDocumentOfferUi())
     } catch {
