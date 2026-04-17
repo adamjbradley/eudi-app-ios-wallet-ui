@@ -91,3 +91,5 @@ xcov_output
 .DS_Store
 
 # End of https://www.toptal.com/developers/gitignore/api/swift
+# App Store Connect API key — never commit the .p8 private key
+fastlane/AuthKey_*.p8
