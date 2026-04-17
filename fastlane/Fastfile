@@ -145,6 +145,35 @@ platform :ios do
   
   end
 
+  desc "Register AU + IN App IDs and App Store Connect app records (idempotent)"
+  lane :register_app_ids do
+    connect_api = app_store_connect_api_key(
+      key_id: ENV["CONNECT_KEY_ID"],
+      issuer_id: ENV["CONNECT_ISSUER_ID"],
+      key_filepath: ENV["CONNECT_KEY_PATH"],
+      duration: 1200,
+      in_house: false,
+    )
+
+    [
+      ["eu.europa.ec.euidi.au", "EUDI Wallet AU"],
+      ["eu.europa.ec.euidi.in", "EUDI Wallet IN"]
+    ].each do |bundle_id, app_name|
+      UI.header "Registering #{app_name} (#{bundle_id})"
+      produce(
+        api_key: connect_api,
+        app_identifier: bundle_id,
+        app_name: app_name,
+        language: "English",
+        app_version: "1.0",
+        sku: bundle_id.gsub(".", "-"),
+        team_id: ENV["CONNECT_TEAM_ID"],
+        skip_itc: false,
+        skip_devcenter: false
+      )
+    end
+  end
+
   desc "Build & deploy all multi-country flavors (EUDI/AU/IN) to TestFlight"
   lane :deploy_all do
     flavors = ['eudi', 'au', 'in']
