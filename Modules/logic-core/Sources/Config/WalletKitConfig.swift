@@ -98,7 +98,7 @@ struct WalletKitConfigImpl: WalletKitConfig {
 
     let openId4VciConfigurations: [OpenId4VciConfiguration] = {
       switch configLogic.appBuildVariant {
-      case .DEMO:
+      case .DEMO, .AU, .IN:
         return [
           .init(
             credentialIssuerURL: "https://issuer.eudiw.dev",

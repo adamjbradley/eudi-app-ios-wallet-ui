@@ -145,6 +145,16 @@ platform :ios do
   
   end
 
+  desc "Build & deploy all multi-country flavors (EUDI/AU/IN) to TestFlight"
+  lane :deploy_all do
+    flavors = ['eudi', 'au', 'in']
+    flavors.each do |flavor|
+      UI.header "Deploying flavor: #{flavor}"
+      Dotenv.overload(File.expand_path("../.env.#{flavor}", __FILE__))
+      deploy
+    end
+  end
+
   desc "Release to github"
   lane :github_release do |values|
     token = values[:token]

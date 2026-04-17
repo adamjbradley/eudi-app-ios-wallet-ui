@@ -21,7 +21,33 @@ public enum AppBuildType: String, Sendable {
 }
 
 public enum AppBuildVariant: String, Sendable {
-  case DEMO, DEV
+  case DEMO, DEV, AU, IN
+}
+
+public extension AppBuildVariant {
+  /**
+   * Credential types (SD-JWT VCTs) the wallet is willing to present for verification.
+   * Each variant is permissive: an AU user who happens to hold an EU PID can still present it.
+   */
+  var trustedCredentialVcts: [String] {
+    switch self {
+    case .DEMO, .DEV:
+      return ["urn:eudi:pid:1"]
+    case .AU:
+      return [
+        "urn:eudi:pid:1",
+        "urn:au:gov:mygovid:pid:1",
+        "urn:au:gov:dl:1",
+        "urn:au:gov:medicare:1"
+      ]
+    case .IN:
+      return [
+        "urn:eudi:pid:1",
+        "urn:in:gov:dl:1",
+        "urn:in:gov:pan:1"
+      ]
+    }
+  }
 }
 
 public protocol ConfigLogic: Sendable {
