@@ -50,6 +50,32 @@ platform :ios do
   lane :deploy do
     ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "600"
 
+    # Patch the resolved Zlib SPM package to remove pkgConfig + providers. The
+    # Zlib package (pulled transitively via jose-swift) declares
+    #   .systemLibrary(pkgConfig: "zlib", providers: [.brew(["zlib"])])
+    # which makes Xcode's SPM inject -I/opt/homebrew/opt/zlib/include and
+    # -L/opt/homebrew/opt/zlib/lib into every dependent target. Those paths
+    # point at a macOS-only dylib, breaking iOS archives with:
+    #   "ld: building for 'iOS', but linking in dylib (..libz.dylib) built for 'macOS'"
+    # With pkgConfig and providers removed, SPM leaves Zlib as a plain
+    # .systemLibrary; the module map's `link "z"` still emits -lz and the
+    # linker resolves it against the iOS SDK's libz.tbd via -isysroot.
+    #
+    # We patch every resolved checkout because the file is overwritten any
+    # time Xcode re-resolves packages. Run unconditionally, harmless if already
+    # patched.
+    Dir.glob(File.expand_path("~/Library/Developer/Xcode/DerivedData/EudiReferenceWallet-*/SourcePackages/checkouts/zlib/Package.swift")).each do |pkg|
+      original = File.read(pkg)
+      patched = original.gsub(
+        /\.systemLibrary\(\s*name:\s*"Zlib",\s*pkgConfig:\s*"zlib",\s*providers:\s*\[[^\]]*\]\s*\)/m,
+        '.systemLibrary(name: "Zlib")'
+      )
+      if patched != original
+        File.write(pkg, patched)
+        UI.message "patched Zlib Package.swift: #{pkg}"
+      end
+    end
+
     git_pull
 
     connect_api = app_store_connect_api_key(
