@@ -98,7 +98,7 @@ struct WalletKitConfigImpl: WalletKitConfig {
 
     let openId4VciConfigurations: [OpenId4VciConfiguration] = {
       switch configLogic.appBuildVariant {
-      case .DEMO, .AU, .IN:
+      case .DEMO:
         return [
           .init(
             credentialIssuerURL: "https://issuer.eudiw.dev",
@@ -112,6 +112,30 @@ struct WalletKitConfigImpl: WalletKitConfig {
           .init(
             credentialIssuerURL: "https://issuer-backend.eudiw.dev",
             clientId: "wallet-dev",
+            keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
+            authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
+            usePAR: true,
+            useDpopIfSupported: true,
+            cacheIssuerMetadata: true
+          )
+        ]
+      case .AU:
+        return [
+          .init(
+            credentialIssuerURL: "https://issuer.theaustraliahack.com/issuers/4bb447ff-661f-4589-bf17-6d97d2a322be/draft13",
+            clientId: "eudi-wallet-au",
+            keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
+            authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
+            usePAR: true,
+            useDpopIfSupported: true,
+            cacheIssuerMetadata: true
+          )
+        ]
+      case .IN:
+        return [
+          .init(
+            credentialIssuerURL: "https://issuer.theaustraliahack.com/issuers/94da79a8-15d2-4060-a4db-69b01a8057d2/draft13",
+            clientId: "eudi-wallet-in",
             keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
             authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
             usePAR: true,
