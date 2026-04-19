@@ -120,9 +120,15 @@ struct WalletKitConfigImpl: WalletKitConfig {
           )
         ]
       case .AU:
+        // EudiWalletKit strips paths via getBaseUrl() when routing incoming
+        // credential offers, so the service must be registered under the base
+        // URL. Android's walletcore keeps the full URL and can use the
+        // tenant-scoped path directly. Per-country UX (filtered docs list)
+        // is instead enforced client-side in
+        // WalletKitController.getScopedDocuments() via trustedCredentialVcts.
         return [
           .init(
-            credentialIssuerURL: "https://issuer.theaustraliahack.com/issuers/4bb447ff-661f-4589-bf17-6d97d2a322be/draft13",
+            credentialIssuerURL: "https://issuer.theaustraliahack.com",
             clientId: "eudi-wallet-au",
             keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
             authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
@@ -134,7 +140,7 @@ struct WalletKitConfigImpl: WalletKitConfig {
       case .IN:
         return [
           .init(
-            credentialIssuerURL: "https://issuer.theaustraliahack.com/issuers/94da79a8-15d2-4060-a4db-69b01a8057d2/draft13",
+            credentialIssuerURL: "https://issuer.theaustraliahack.com",
             clientId: "eudi-wallet-in",
             keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
             authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,

@@ -324,11 +324,24 @@ final actor WalletKitControllerImpl: WalletKitController {
 
   func getScopedDocuments() async throws -> [ScopedDocument] {
 
-    try await withThrowingTaskGroup(of: [ScopedDocument].self) { group in
+    // For AU/IN, restrict the displayed catalog to the country's trusted
+    // VCTs. Needed because EudiWalletKit forces us to register the shared
+    // base issuer URL (see WalletKitConfig.swift) which returns the full
+    // multi-country list, not the tenant-filtered one Android sees.
+    let variant = (Bundle.main.object(forInfoDictionaryKey: "Build Variant") as? String) ?? ""
+    let trustedVcts: Set<String>? = {
+      switch variant {
+      case "AU": return ["urn:eudi:pid:1", "urn:au:gov:mygovid:pid:1", "urn:au:gov:dl:1", "urn:au:gov:medicare:1"]
+      case "IN": return ["urn:eudi:pid:1", "urn:in:gov:dl:1", "urn:in:gov:pan:1", "urn:in:gov:aadhaar:pid:1"]
+      default: return nil
+      }
+    }()
+
+    return try await withThrowingTaskGroup(of: [ScopedDocument].self) { group in
       for issuerName in configLogic.vciConfig.keys {
         group.addTask {
           let metadata = try await self.wallet.getIssuerMetadata(issuerName: issuerName)
-          return metadata.credentialsSupported.compactMap { credential in
+          let rawDocs: [ScopedDocument] = metadata.credentialsSupported.compactMap { credential in
             switch credential.value {
             case .msoMdoc(let config):
               let id = DocumentTypeIdentifier(rawValue: config.docType)
@@ -355,6 +368,10 @@ final actor WalletKitControllerImpl: WalletKitController {
               return nil
             }
           }
+          if let trustedVcts {
+            return rawDocs.filter { trustedVcts.contains($0.docTypeIdentifier.rawValue) }
+          }
+          return rawDocs
         }
       }
 
