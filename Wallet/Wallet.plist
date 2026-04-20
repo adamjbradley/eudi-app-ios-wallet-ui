@@ -35,5 +35,10 @@
 	<string>$(CORE_USER_AUTH)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>$(LAUNCH_BG_COLOR)</string>
+	</dict>
 </dict>
 </plist>

@@ -1,0 +1,6 @@
+{
+  "images" : [
+    { "filename" : "logo-au-wallet.svg", "idiom" : "universal" }
+  ],
+  "info" : { "author" : "xcode", "version" : 1 }
+}
