@@ -101,6 +101,46 @@ final class ReaderTrustStoreUpdaterTests: XCTestCase {
     XCTAssertEqual(ders.count, 2)
     XCTAssertTrue(FileManager.default.fileExists(atPath: tmp.path))
   }
+
+  func testFetchFallsBackToCacheOnNetworkError() async throws {
+    let cfg = URLSessionConfiguration.ephemeral
+    cfg.protocolClasses = [StubURLProtocol.self]
+    let session = URLSession(configuration: cfg)
+
+    StubURLProtocol.statusCode = 500
+    StubURLProtocol.payload = Data()
+
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("rp-\(UUID()).pem")
+    try Self.pemBlockA.data(using: .utf8)!.write(to: tmp)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+
+    let updater = ReaderTrustStoreUpdater(
+      pemUrl: URL(string: "https://example.invalid/.well-known/rp-certificates")!,
+      session: session,
+      cacheURL: tmp
+    )
+    let ders = await updater.fetchCertificates()
+    XCTAssertEqual(ders.count, 1, "should have fallen back to cache")
+  }
+
+  func testFetchReturnsEmptyOnFailureWithNoCache() async throws {
+    let cfg = URLSessionConfiguration.ephemeral
+    cfg.protocolClasses = [StubURLProtocol.self]
+    let session = URLSession(configuration: cfg)
+
+    StubURLProtocol.statusCode = 500
+
+    let tmp = FileManager.default.temporaryDirectory
+      .appendingPathComponent("rp-nonexistent-\(UUID()).pem")
+
+    let updater = ReaderTrustStoreUpdater(
+      pemUrl: URL(string: "https://example.invalid/.well-known/rp-certificates")!,
+      session: session,
+      cacheURL: tmp
+    )
+    let ders = await updater.fetchCertificates()
+    XCTAssertEqual(ders, [])
+  }
 }
 
 final class StubURLProtocol: URLProtocol, @unchecked Sendable {
