@@ -200,7 +200,13 @@ struct WalletKitConfigImpl: WalletKitConfig {
       "pidissuerca02_nl",
       "pidissuerca02_pt",
       "pidissuerca02_ut",
-      "r45_staging"
+      "r45_staging",
+      // Self-signed CAs for our dev RPs. Without these, iOS rejects the signed
+      // authorization request (JAR) from verifier2 and the wallet surfaces a
+      // misleading "requested document is not available" error. Android trusts
+      // the same pair via R.raw.verifier2_theaustraliahack + rp_theaustraliahack.
+      "verifier2_theaustraliahack",
+      "rp_theaustraliahack"
     ]
     let certsData: [Data] = certificates.compactMap {
       Data(name: $0, ext: "der")
