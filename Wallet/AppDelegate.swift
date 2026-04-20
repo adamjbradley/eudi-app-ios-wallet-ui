@@ -17,7 +17,26 @@ import Foundation
 import UIKit
 import logic_assembly
 import logic_core
+import Logging
 import SDWebImageSVGCoder
+
+/// Swift-log LogHandler that routes every log line through NSLog so the output
+/// isn't redacted as `<private>` on TestFlight / release builds. Temporary
+/// diagnostic — visible via `idevicesyslog -u <udid>`.
+struct NSLogLogHandler: LogHandler {
+  var metadata: Logger.Metadata = [:]
+  var logLevel: Logger.Level = .trace
+  let label: String
+  subscript(metadataKey key: String) -> Logger.Metadata.Value? {
+    get { metadata[key] }
+    set { metadata[key] = newValue }
+  }
+  func log(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?,
+           source: String, file: String, function: String, line: UInt) {
+    let meta = metadata.flatMap { $0.isEmpty ? nil : $0.map { "\($0.key)=\($0.value)" }.joined(separator: " ") } ?? ""
+    NSLog("[EUDI-\(level)] [%@] %@ %@", label, "\(message)", meta)
+  }
+}
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
@@ -28,6 +47,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+
+    // Route swift-log (EudiWalletKit, OpenID4VP lib, etc.) through NSLog so
+    // warnings/errors show up un-redacted in iOS syslog. Diagnostic — safe to
+    // revert once the DCQL matching bug is traced.
+    LoggingSystem.bootstrap { label in
+      var h: LogHandler = NSLogLogHandler(label: label)
+      h.logLevel = .trace
+      return h
+    }
 
     // Initialize Reporting
     initializeReporting()
