@@ -41,4 +41,17 @@ public final class ReaderTrustStoreUpdater: Sendable {
       return seen.insert(fingerprint).inserted
     }
   }
+
+  /// On-disk cache location. iOS analogue of Android's `filesDir/rp-certificates-cache.pem`.
+  /// `.applicationSupportDirectory` is private to the app, preserved across launches, and
+  /// not OS-evictable like `.cachesDirectory`.
+  public static func cacheURL() throws -> URL {
+    let dir = try FileManager.default.url(
+      for: .applicationSupportDirectory,
+      in: .userDomainMask,
+      appropriateFor: nil,
+      create: true
+    )
+    return dir.appendingPathComponent("rp-certificates-cache.pem")
+  }
 }

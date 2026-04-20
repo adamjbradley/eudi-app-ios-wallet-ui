@@ -73,4 +73,11 @@ final class ReaderTrustStoreUpdaterTests: XCTestCase {
     XCTAssertTrue(deduped.contains(a))
     XCTAssertTrue(deduped.contains(b))
   }
+
+  func testCacheURLIsUnderApplicationSupport() throws {
+    let url = try ReaderTrustStoreUpdater.cacheURL()
+    let path = url.path
+    XCTAssertTrue(path.contains("Application Support"), "got \(path)")
+    XCTAssertTrue(path.hasSuffix("rp-certificates-cache.pem"))
+  }
 }
