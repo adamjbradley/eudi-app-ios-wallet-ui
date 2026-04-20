@@ -18,6 +18,54 @@ import Foundation
 
 public final class ReaderTrustStoreUpdater: Sendable {
 
+  private let pemUrl: URL
+  private let session: URLSession
+  private let cacheURLOverride: URL?
+
+  private static let readTimeout: TimeInterval = 15
+
+  /// - Parameters:
+  ///   - pemUrl: endpoint returning a PEM bundle (one or more `CERTIFICATE` blocks)
+  ///   - session: URLSession used for the fetch — defaults to a transient ephemeral session
+  ///   - cacheURL: override for the on-disk cache path (test seam); defaults to `Self.cacheURL()`
+  public init(
+    pemUrl: URL,
+    session: URLSession = URLSession(configuration: .ephemeral),
+    cacheURL: URL? = nil
+  ) {
+    self.pemUrl = pemUrl
+    self.session = session
+    self.cacheURLOverride = cacheURL
+  }
+
+  /// Fetch the RP certificate bundle, write it to the on-disk cache, and return
+  /// the parsed DER list. On network failure, fall back to the cached PEM from a
+  /// previous run. On both failures, return an empty array — the caller keeps
+  /// whatever certs it already trusted.
+  public func fetchCertificates() async -> [Data] {
+    let cacheURL: URL? = cacheURLOverride ?? (try? Self.cacheURL())
+    if let pem = try? await downloadPem(), !pem.isEmpty {
+      if let cacheURL {
+        try? pem.write(to: cacheURL, atomically: true, encoding: .utf8)
+      }
+      return Self.parsePem(pem)
+    }
+    if let cacheURL, let cached = try? String(contentsOf: cacheURL, encoding: .utf8) {
+      return Self.parsePem(cached)
+    }
+    return []
+  }
+
+  private func downloadPem() async throws -> String {
+    var req = URLRequest(url: pemUrl)
+    req.timeoutInterval = Self.readTimeout
+    let (data, response) = try await session.data(for: req)
+    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+      return ""
+    }
+    return String(data: data, encoding: .utf8) ?? ""
+  }
+
   /// Parse a PEM bundle (possibly containing multiple `BEGIN CERTIFICATE` blocks)
   /// into an array of DER-encoded certificate bytes.
   public static func parsePem(_ pem: String) -> [Data] {

@@ -80,4 +80,44 @@ final class ReaderTrustStoreUpdaterTests: XCTestCase {
     XCTAssertTrue(path.contains("Application Support"), "got \(path)")
     XCTAssertTrue(path.hasSuffix("rp-certificates-cache.pem"))
   }
+
+  func testFetchCertificatesReturnsParsedDersOnHttp200() async throws {
+    let cfg = URLSessionConfiguration.ephemeral
+    cfg.protocolClasses = [StubURLProtocol.self]
+    let session = URLSession(configuration: cfg)
+
+    StubURLProtocol.statusCode = 200
+    StubURLProtocol.payload = (Self.pemBlockA + "\n" + Self.pemBlockB).data(using: .utf8)!
+
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("rp-\(UUID()).pem")
+    defer { try? FileManager.default.removeItem(at: tmp) }
+
+    let updater = ReaderTrustStoreUpdater(
+      pemUrl: URL(string: "https://example.invalid/.well-known/rp-certificates")!,
+      session: session,
+      cacheURL: tmp
+    )
+    let ders = await updater.fetchCertificates()
+    XCTAssertEqual(ders.count, 2)
+    XCTAssertTrue(FileManager.default.fileExists(atPath: tmp.path))
+  }
+}
+
+final class StubURLProtocol: URLProtocol, @unchecked Sendable {
+  nonisolated(unsafe) static var payload: Data = Data()
+  nonisolated(unsafe) static var statusCode: Int = 200
+  override class func canInit(with request: URLRequest) -> Bool { true }
+  override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+  override func startLoading() {
+    let resp = HTTPURLResponse(
+      url: request.url!,
+      statusCode: Self.statusCode,
+      httpVersion: nil,
+      headerFields: nil
+    )!
+    client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+    client?.urlProtocol(self, didLoad: Self.payload)
+    client?.urlProtocolDidFinishLoading(self)
+  }
+  override func stopLoading() {}
 }
