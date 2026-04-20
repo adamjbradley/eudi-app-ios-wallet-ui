@@ -135,6 +135,21 @@ final actor WalletKitControllerImpl: WalletKitController {
     // swift-log's preconditionFailure and crashes the app.
 
     wallet = walletKit
+
+    // Dynamic refresh of trusted reader certificates. Matches Android's
+    // `CoroutineScope(Dispatchers.IO).launch` — fire-and-forget; the
+    // statically-bundled certs seeded via `trustedReaderCertificates:` above
+    // stay authoritative until (and if) this fetch lands, so offline / first
+    // launch / misconfigured-URL all fall back to the bundle silently.
+    if let url = configLogic.rpCertificatesUrl {
+      let bundled = configLogic.readerConfig.trustedCerts
+      Task.detached(priority: .utility) { [weak walletKit] in
+        let fetched = await ReaderTrustStoreUpdater(pemUrl: url).fetchCertificates()
+        guard !fetched.isEmpty, let walletKit else { return }
+        walletKit.trustedReaderCertificates =
+          ReaderTrustStoreUpdater.deduplicateByFingerprint(bundled + fetched)
+      }
+    }
   }
 
   func resolveOfferUrlDocTypes(offerUri: String) async throws -> OfferedIssuanceModel {
