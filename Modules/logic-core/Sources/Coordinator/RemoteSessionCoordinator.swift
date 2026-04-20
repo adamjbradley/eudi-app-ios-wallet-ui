@@ -66,10 +66,30 @@ final class RemoteSessionCoordinatorImpl: RemoteSessionCoordinator {
   }
 
   public func initialize() async {
-    _ = await session.receiveRequest()
+    NSLog("[EUDI-DIAG] initialize: BEFORE receiveRequest, docIdToPresentInfo.count=%d", session.docIdToPresentInfo?.count ?? -1)
+    if let dip = session.docIdToPresentInfo {
+      for (docId, info) in dip {
+        NSLog("[EUDI-DIAG]   presentInfo docId=%@ docType=%@ format=%@", docId, info.docType, String(describing: info.docDataFormat))
+      }
+    }
+    let result = await session.receiveRequest()
+    NSLog("[EUDI-DIAG] initialize: AFTER receiveRequest, result=%@ disclosedDocuments.count=%d uiError=%@",
+          result == nil ? "nil" : "ok",
+          session.disclosedDocuments.count,
+          session.uiError?.errorDescription ?? "none")
+    if let req = result {
+      NSLog("[EUDI-DIAG]   docDataFormats=%@", String(describing: req.docDataFormats))
+      NSLog("[EUDI-DIAG]   itemsRequested=%@", String(describing: req.itemsRequested))
+    }
+    for doc in session.disclosedDocuments {
+      NSLog("[EUDI-DIAG]   disclosed docId=%@ type=%@", doc.docId, doc.docTypeOrVct)
+    }
   }
 
   public func requestReceived() async throws -> PresentationRequest {
+    NSLog("[EUDI-DIAG] requestReceived: disclosedDocuments.count=%d uiError=%@",
+          session.disclosedDocuments.count,
+          session.uiError?.errorDescription ?? "none")
     guard session.disclosedDocuments.isEmpty == false else {
       throw session.uiError ?? .init(description: "Failed to Find known documents to send")
     }

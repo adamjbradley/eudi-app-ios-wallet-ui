@@ -129,6 +129,11 @@ final actor WalletKitControllerImpl: WalletKitController {
 
     walletKit.uiCulture = Locale.current.systemLanguageCode
 
+    // NOTE: do NOT reassign walletKit.logFileName here — its didSet calls
+    // LoggingSystem.bootstrap, and AppDelegate has already bootstrapped with
+    // our NSLog + file MultiplexLogHandler. A second bootstrap triggers
+    // swift-log's preconditionFailure and crashes the app.
+
     wallet = walletKit
   }
 
