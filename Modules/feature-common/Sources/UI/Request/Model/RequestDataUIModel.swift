@@ -465,8 +465,7 @@ private extension DocumentElementClaim {
               isEnable: !status.isRequired,
               trailingContent: .checkbox(
                 !status.isRequired && status.isAvailable,
-                status.isAvailable,
-                { _ in }
+                status.isAvailable, { _ in }
               )
             ),
             domainModel: self
@@ -483,8 +482,7 @@ private extension DocumentElementClaim {
                 isEnable: !status.isRequired,
                 trailingContent: .checkbox(
                   !status.isRequired && status.isAvailable,
-                  status.isAvailable,
-                  { _ in }
+                  status.isAvailable, { _ in }
                 )
               ),
               domainModel: self
@@ -500,8 +498,7 @@ private extension DocumentElementClaim {
                 isEnable: !status.isRequired,
                 trailingContent: .checkbox(
                   !status.isRequired && status.isAvailable,
-                  status.isAvailable,
-                  { _ in }
+                  status.isAvailable, { _ in }
                 )
               ),
               domainModel: self

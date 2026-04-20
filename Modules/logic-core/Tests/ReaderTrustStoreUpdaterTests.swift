@@ -54,4 +54,13 @@ final class ReaderTrustStoreUpdaterTests: XCTestCase {
     XCTAssertGreaterThan(ders[1].count, 50)
     XCTAssertNotEqual(ders[0], ders[1])
   }
+
+  func testParsePemRejectsNonCertText() {
+    XCTAssertEqual(ReaderTrustStoreUpdater.parsePem(""), [])
+    XCTAssertEqual(ReaderTrustStoreUpdater.parsePem("not a cert"), [])
+    XCTAssertEqual(
+      ReaderTrustStoreUpdater.parsePem("-----BEGIN WRONG-----\nAAAA\n-----END WRONG-----"),
+      []
+    )
+  }
 }

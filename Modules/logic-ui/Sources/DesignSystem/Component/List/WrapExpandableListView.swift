@@ -102,8 +102,7 @@ private struct WrapExpandableListPreviewView: View {
           mainContent: .text(.custom("Single 1")),
           trailingContent: .checkbox(
             true,
-            true,
-            { _ in }
+            true, { _ in }
           )
         ),
         domainModel: nil
