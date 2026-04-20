@@ -14,6 +14,7 @@
  * governing permissions and limitations under the Licence.
  */
 import SwiftUI
+import logic_resources
 
 public struct AppIconAndTextData {
   public let appIcon: Image
@@ -49,10 +50,25 @@ public struct AppIconAndTextView: View {
         .resizable()
         .scaledToFit()
         .frame(width: appIconAndTextData.appIconSize, height: appIconAndTextData.appIconSize)
-      appIconAndTextData.appText
-        .resizable()
-        .scaledToFit()
-        .frame(width: appIconAndTextData.appTextSize, height: appIconAndTextData.appTextSize)
+      if let line1 = AppBrand.line1, let line2 = AppBrand.line2 {
+        // AU/IN flavors: live per-country brand text (matches Android
+        // `app_brand_line1` + `app_brand_line2`).
+        VStack(alignment: .leading, spacing: 0) {
+          Text(line1)
+            .font(.system(size: 13, weight: .regular))
+            .foregroundColor(Theme.shared.color.onSurface)
+          Text(line2)
+            .font(.system(size: 22, weight: .bold))
+            .foregroundColor(Theme.shared.color.onSurface)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      } else {
+        // DEMO / DEV: keep the existing "EUDI Wallet" text image.
+        appIconAndTextData.appText
+          .resizable()
+          .scaledToFit()
+          .frame(width: appIconAndTextData.appTextSize, height: appIconAndTextData.appTextSize)
+      }
     }
     .frame(maxWidth: .infinity, alignment: .center)
   }

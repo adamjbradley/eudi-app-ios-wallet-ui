@@ -170,7 +170,7 @@ final class ColorManager: ColorManagerProtocol {
     Color(MaterialColors.onPrimary.rawValue, bundle: bundle)
   }
   public var primaryContainer: Color {
-    Color(MaterialColors.primaryContainer.rawValue, bundle: bundle)
+    Self.flavorSecondary ?? Color(MaterialColors.primaryContainer.rawValue, bundle: bundle)
   }
   public var onPrimaryContainer: Color {
     Color(MaterialColors.onPrimaryContainer.rawValue, bundle: bundle)
@@ -346,6 +346,31 @@ final class ColorManager: ColorManagerProtocol {
     switch buildVariant {
     case "AU": return Color(red: 0x00 / 255.0, green: 0x68 / 255.0, blue: 0x47 / 255.0) // #006847
     case "IN": return Color(red: 0x00 / 255.0, green: 0x00 / 255.0, blue: 0x80 / 255.0) // #000080
+    default:   return nil
+    }
+  }
+}
+
+/// Two-line brand text shown alongside the app icon on Welcome / Loading /
+/// Success screens. Matches Android's `app_brand_line1` + `app_brand_line2`
+/// per-flavor resources. Returns `nil` for flavors without country-specific
+/// branding (DEMO, DEV — keep the existing "euditext" image in that case).
+public enum AppBrand {
+  nonisolated(unsafe) private static let buildVariant: String =
+    (Bundle.main.object(forInfoDictionaryKey: "Build Variant") as? String) ?? ""
+
+  public static var line1: String? {
+    switch buildVariant {
+    case "AU": return "MyID Wallet"
+    case "IN": return "Aadhaar Wallet"
+    default:   return nil
+    }
+  }
+
+  public static var line2: String? {
+    switch buildVariant {
+    case "AU": return "Australia"
+    case "IN": return "India"
     default:   return nil
     }
   }
