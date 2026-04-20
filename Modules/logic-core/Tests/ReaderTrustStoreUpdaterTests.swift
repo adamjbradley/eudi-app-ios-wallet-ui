@@ -63,4 +63,14 @@ final class ReaderTrustStoreUpdaterTests: XCTestCase {
       []
     )
   }
+
+  func testDeduplicateKeepsUniqueDropsDuplicates() {
+    let a = ReaderTrustStoreUpdater.parsePem(Self.pemBlockA).first!
+    let b = ReaderTrustStoreUpdater.parsePem(Self.pemBlockB).first!
+    let input = [a, b, a, b, a]
+    let deduped = ReaderTrustStoreUpdater.deduplicateByFingerprint(input)
+    XCTAssertEqual(deduped.count, 2)
+    XCTAssertTrue(deduped.contains(a))
+    XCTAssertTrue(deduped.contains(b))
+  }
 }

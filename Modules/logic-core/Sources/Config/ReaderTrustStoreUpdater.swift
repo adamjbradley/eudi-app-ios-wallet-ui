@@ -13,6 +13,7 @@
  * ANY KIND, either express or implied. See the Licence for the specific language
  * governing permissions and limitations under the Licence.
  */
+import CryptoKit
 import Foundation
 
 public final class ReaderTrustStoreUpdater: Sendable {
@@ -27,6 +28,17 @@ public final class ReaderTrustStoreUpdater: Sendable {
         .components(separatedBy: .whitespacesAndNewlines)
         .joined()
       return Data(base64Encoded: body)
+    }
+  }
+
+  /// Deduplicate by SHA-256 fingerprint of the DER bytes. Matches the Android
+  /// `ReaderTrustStoreUpdater.deduplicateByFingerprint` definition — the same
+  /// cert bundled locally and fetched from the URL collapses to one entry.
+  public static func deduplicateByFingerprint(_ certs: [Data]) -> [Data] {
+    var seen = Set<Data>()
+    return certs.filter { cert in
+      let fingerprint = Data(SHA256.hash(data: cert))
+      return seen.insert(fingerprint).inserted
     }
   }
 }
