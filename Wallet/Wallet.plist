@@ -39,6 +39,10 @@
 	<dict>
 		<key>UIColorName</key>
 		<string>$(LAUNCH_BG_COLOR)</string>
+		<key>UIImageName</key>
+		<string>$(LAUNCH_LOGO)</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<true/>
 	</dict>
 </dict>
 </plist>

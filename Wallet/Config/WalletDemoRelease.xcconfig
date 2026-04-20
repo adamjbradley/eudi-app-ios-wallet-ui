@@ -4,3 +4,4 @@ CHANGELOG_URL =  https:/$()/github.com/eu-digital-identity-wallet/eudi-app-ios-w
 WALLET_APP_DISPLAY_NAME = EUDI Wallet
 
 LAUNCH_BG_COLOR = LaunchBgEUDI
+LAUNCH_LOGO = LaunchLogoEUDI
