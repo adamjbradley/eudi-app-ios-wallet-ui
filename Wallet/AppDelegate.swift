@@ -44,7 +44,9 @@ struct DiagnosticLogHandler: LogHandler {
     return fh
   }()
   private static let fileQueue = DispatchQueue(label: "eudi.diag.filelog")
-  private static let isoFormatter: ISO8601DateFormatter = {
+  // ISO8601DateFormatter isn't Sendable; access is serialized through fileQueue,
+  // so `nonisolated(unsafe)` is a deliberate opt-out of the strict-concurrency check.
+  nonisolated(unsafe) private static let isoFormatter: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return f
@@ -64,9 +66,11 @@ struct DiagnosticLogHandler: LogHandler {
     let meta = metadata.flatMap { $0.isEmpty ? nil : $0.map { "\($0.key)=\($0.value)" }.joined(separator: " ") } ?? ""
     let msg = "\(message)"
     NSLog("[EUDI-\(level)] [%@] %@ %@", label, msg, meta)
-    let ts = Self.isoFormatter.string(from: Date())
-    let lineText = "\(ts) \(level) \(label): \(msg)\(meta.isEmpty ? "" : " \(meta)")\n"
+    let now = Date()
+    let capturedLabel = label
     Self.fileQueue.async {
+      let ts = Self.isoFormatter.string(from: now)
+      let lineText = "\(ts) \(level) \(capturedLabel): \(msg)\(meta.isEmpty ? "" : " \(meta)")\n"
       if let data = lineText.data(using: .utf8) {
         Self.fileHandle?.write(data)
       }
