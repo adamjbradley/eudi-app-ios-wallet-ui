@@ -72,6 +72,13 @@ protocol WalletKitConfig: Sendable {
    * Configuration for document issuance, including default rules and specific overrides.
    */
   var documentIssuanceConfig: DocumentIssuanceConfig { get }
+
+  /**
+   * URL of a PEM bundle listing trusted RP/verifier certificates. The wallet
+   * fetches this at startup and merges the result with `readerConfig.trustedCerts`.
+   * Return `nil` to disable dynamic fetching for a flavor.
+   */
+  var rpCertificatesUrl: URL? { get }
 }
 
 struct WalletKitConfigImpl: WalletKitConfig {
@@ -223,6 +230,15 @@ struct WalletKitConfigImpl: WalletKitConfig {
 
   var logFileName: String {
     return "eudi-ios-wallet-logs"
+  }
+
+  var rpCertificatesUrl: URL? {
+    switch configLogic.appBuildVariant {
+    case .AU, .IN, .DEV:
+      return URL(string: "https://verifier2.theaustraliahack.com/.well-known/rp-certificates")
+    case .DEMO:
+      return nil
+    }
   }
 
   var documentsCategories: DocumentCategories {
