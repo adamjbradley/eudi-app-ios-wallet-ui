@@ -43,6 +43,7 @@ public extension AppBuildVariant {
     case .IN:
       return [
         "urn:eudi:pid:1",
+        "urn:in:gov:aadhaar:pid:1",
         "urn:in:gov:dl:1",
         "urn:in:gov:pan:1"
       ]
