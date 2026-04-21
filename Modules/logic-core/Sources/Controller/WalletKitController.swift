@@ -369,7 +369,7 @@ final actor WalletKitControllerImpl: WalletKitController {
                 name: config.credentialMetadata?.display.getName(fallback: credential.key.value) ?? credential.key.value,
                 issuer: metadata.credentialIssuerIdentifier.url.host.ifNilOrEmpty { issuerName },
                 configId: credential.key.value,
-                isPid: id == .mDocPid,
+                isPid: id.isPidLike,
                 docTypeIdentifier: id
               )
 
@@ -380,7 +380,7 @@ final actor WalletKitControllerImpl: WalletKitController {
                 name: config.credentialMetadata?.display.getName(fallback: credential.key.value) ?? credential.key.value,
                 issuer: metadata.credentialIssuerIdentifier.url.host.ifNilOrEmpty { issuerName },
                 configId: credential.key.value,
-                isPid: id == .sdJwtPid,
+                isPid: id.isPidLike,
                 docTypeIdentifier: id
               )
 
