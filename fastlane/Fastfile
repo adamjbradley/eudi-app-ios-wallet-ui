@@ -66,8 +66,11 @@ platform :ios do
     # patched.
     Dir.glob(File.expand_path("~/Library/Developer/Xcode/DerivedData/EudiReferenceWallet-*/SourcePackages/checkouts/zlib/Package.swift")).each do |pkg|
       original = File.read(pkg)
+      # Nested-bracket-aware regex: the providers array contains entries like
+      # `.apt(["zlib"])` whose inner `["zlib"]` would trip a naive `[^\]]*\]`.
+      # Match one level of nesting explicitly.
       patched = original.gsub(
-        /\.systemLibrary\(\s*name:\s*"Zlib",\s*pkgConfig:\s*"zlib",\s*providers:\s*\[[^\]]*\]\s*\)/m,
+        /\.systemLibrary\(\s*name:\s*"Zlib",\s*pkgConfig:\s*"zlib",\s*providers:\s*\[(?:[^\[\]]|\[[^\[\]]*\])*\]\s*\)/m,
         '.systemLibrary(name: "Zlib")'
       )
       if patched != original
