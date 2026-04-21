@@ -41,9 +41,35 @@ public enum DocumentTypeIdentifier: RawRepresentable, Equatable, Sendable, Hasha
       self = .other(formatType: rawValue)
     }
   }
+
+  /// `true` for the canonical EU PID (mDoc + SD-JWT VC) *and* for
+  /// country-variant PID VCTs the wallet recognises as regional PIDs.
+  /// Used by the onboarding "Add your first document" list so shoppers on
+  /// an AU build see `urn:au:gov:mygovid:pid:1` alongside `urn:eudi:pid:1`,
+  /// instead of only the generic EU PID.
+  ///
+  /// Other credential types (driving licences, Medicare, PAN, etc.) are
+  /// intentionally excluded — they are "extra documents" that require a
+  /// PID to be present before they can be added.
+  public var isPidLike: Bool {
+    switch self {
+    case .mDocPid, .sdJwtPid:
+      return true
+    case .other(let formatType):
+      return Self.countryPidVcts.contains(formatType)
+    }
+  }
 }
 
 private extension DocumentTypeIdentifier {
   static let mDocPidDocType = "eu.europa.ec.eudi.pid.1"
   static let sdJwtPidDocType = "urn:eudi:pid:1"
+
+  /// Regional PID VCTs recognised by `isPidLike`. Keep in sync with the
+  /// per-variant `trustedCredentialVcts` in `AppBuildVariant` (only the
+  /// PID entries — driving licences and Medicare are not PIDs).
+  static let countryPidVcts: Set<String> = [
+    "urn:au:gov:mygovid:pid:1",
+    "urn:in:gov:aadhaar:pid:1"
+  ]
 }

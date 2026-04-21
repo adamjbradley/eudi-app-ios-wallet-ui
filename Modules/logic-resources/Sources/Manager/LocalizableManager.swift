@@ -103,9 +103,9 @@ final class LocalizableManager: LocalizableManagerType {
     case .changeQuickPinOption:
       bundle.localizedString(forKey: "change_quick_pin_option")
     case .quickPinSetTitle:
-      bundle.localizedString(forKey: "quick_pin_set_title")
+      Self.flavorWelcomeTitle ?? bundle.localizedString(forKey: "quick_pin_set_title")
     case .quickPinSetCaptionOne:
-      bundle.localizedString(forKey: "quick_pin_set_step_one_caption")
+      Self.flavorPinStepOneCaption ?? bundle.localizedString(forKey: "quick_pin_set_step_one_caption")
     case .quickPinSetCaptionTwo:
       bundle.localizedString(forKey: "quick_pin_set_step_two_caption")
     case .quickPinNextButton:
@@ -113,7 +113,7 @@ final class LocalizableManager: LocalizableManagerType {
     case .quickPinConfirmButton:
       bundle.localizedString(forKey: "quick_pin_confirm_button")
     case .quickPinSetSuccess:
-      bundle.localizedString(forKey: "quick_pin_set_success")
+      Self.flavorPinSuccess ?? bundle.localizedString(forKey: "quick_pin_set_success")
     case .loginTitle:
       bundle.localizedString(forKey: "login_title")
     case .loginCaptionQuickPinOnly:
@@ -486,6 +486,35 @@ final class LocalizableManager: LocalizableManagerType {
       bundle.localizedString(forKey: "issuance_add_document_no_options")
     case .unknown:
       bundle.localizedString(forKey: "unknown")
+    }
+  }
+
+  // MARK: - Flavor overrides (parity with Android AU/IN flavor strings)
+
+  nonisolated(unsafe) private static let buildVariant: String =
+    (Bundle.main.object(forInfoDictionaryKey: "Build Variant") as? String) ?? ""
+
+  private static var flavorWelcomeTitle: String? {
+    switch buildVariant {
+    case "AU": return "Welcome to MyID Wallet Australia"
+    case "IN": return "Welcome to Aadhaar Wallet India"
+    default:   return nil
+    }
+  }
+
+  private static var flavorPinStepOneCaption: String? {
+    switch buildVariant {
+    case "AU": return "Secure your wallet with a PIN code and connect to your Australian Digital ID."
+    case "IN": return "Secure your wallet with a PIN code and connect to your Aadhaar Digital ID."
+    default:   return nil
+    }
+  }
+
+  private static var flavorPinSuccess: String? {
+    switch buildVariant {
+    case "AU": return "To activate your wallet, connect to your Australian Digital ID system."
+    case "IN": return "To activate your wallet, connect to your Aadhaar Digital ID system."
+    default:   return nil
     }
   }
 }

@@ -164,13 +164,13 @@ final class ColorManager: ColorManagerProtocol {
     Color(BaseColors.warning.rawValue, bundle: bundle)
   }
   public var primary: Color {
-    Color(MaterialColors.primary.rawValue, bundle: bundle)
+    Self.flavorPrimary ?? Color(MaterialColors.primary.rawValue, bundle: bundle)
   }
   public var onPrimary: Color {
     Color(MaterialColors.onPrimary.rawValue, bundle: bundle)
   }
   public var primaryContainer: Color {
-    Color(MaterialColors.primaryContainer.rawValue, bundle: bundle)
+    Self.flavorSecondary ?? Color(MaterialColors.primaryContainer.rawValue, bundle: bundle)
   }
   public var onPrimaryContainer: Color {
     Color(MaterialColors.onPrimaryContainer.rawValue, bundle: bundle)
@@ -191,7 +191,7 @@ final class ColorManager: ColorManagerProtocol {
   // MARK: - Secondary
 
   public var secondary: Color {
-    Color(MaterialColors.secondary.rawValue, bundle: bundle)
+    Self.flavorSecondary ?? Color(MaterialColors.secondary.rawValue, bundle: bundle)
   }
 
   public var onSecondary: Color {
@@ -327,6 +327,52 @@ final class ColorManager: ColorManagerProtocol {
 
   init(bundle: Bundle) {
     self.bundle = bundle
+  }
+
+  // MARK: - Flavor overrides (parity with Android flavor `theme_primary` / `theme_accent`)
+
+  private static let buildVariant: String =
+    (Bundle.main.object(forInfoDictionaryKey: "Build Variant") as? String) ?? ""
+
+  fileprivate static var flavorPrimary: Color? {
+    switch buildVariant {
+    case "AU": return Color(red: 0xDA / 255.0, green: 0xA5 / 255.0, blue: 0x20 / 255.0) // #DAA520
+    case "IN": return Color(red: 0xFF / 255.0, green: 0x99 / 255.0, blue: 0x33 / 255.0) // #FF9933
+    default:   return nil
+    }
+  }
+
+  fileprivate static var flavorSecondary: Color? {
+    switch buildVariant {
+    case "AU": return Color(red: 0x00 / 255.0, green: 0x68 / 255.0, blue: 0x47 / 255.0) // #006847
+    case "IN": return Color(red: 0x00 / 255.0, green: 0x00 / 255.0, blue: 0x80 / 255.0) // #000080
+    default:   return nil
+    }
+  }
+}
+
+/// Two-line brand text shown alongside the app icon on Welcome / Loading /
+/// Success screens. Matches Android's `app_brand_line1` + `app_brand_line2`
+/// per-flavor resources. Returns `nil` for flavors without country-specific
+/// branding (DEMO, DEV — keep the existing "euditext" image in that case).
+public enum AppBrand {
+  nonisolated(unsafe) private static let buildVariant: String =
+    (Bundle.main.object(forInfoDictionaryKey: "Build Variant") as? String) ?? ""
+
+  public static var line1: String? {
+    switch buildVariant {
+    case "AU": return "MyID Wallet"
+    case "IN": return "Aadhaar Wallet"
+    default:   return nil
+    }
+  }
+
+  public static var line2: String? {
+    switch buildVariant {
+    case "AU": return "Australia"
+    case "IN": return "India"
+    default:   return nil
+    }
   }
 }
 

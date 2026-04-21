@@ -72,6 +72,13 @@ protocol WalletKitConfig: Sendable {
    * Configuration for document issuance, including default rules and specific overrides.
    */
   var documentIssuanceConfig: DocumentIssuanceConfig { get }
+
+  /**
+   * URL of a PEM bundle listing trusted RP/verifier certificates. The wallet
+   * fetches this at startup and merges the result with `readerConfig.trustedCerts`.
+   * Return `nil` to disable dynamic fetching for a flavor.
+   */
+  var rpCertificatesUrl: URL? { get }
 }
 
 struct WalletKitConfigImpl: WalletKitConfig {
@@ -112,6 +119,36 @@ struct WalletKitConfigImpl: WalletKitConfig {
           .init(
             credentialIssuerURL: "https://issuer-backend.eudiw.dev",
             clientId: "wallet-dev",
+            keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
+            authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
+            usePAR: true,
+            useDpopIfSupported: true,
+            cacheIssuerMetadata: true
+          )
+        ]
+      case .AU:
+        // EudiWalletKit strips paths via getBaseUrl() when routing incoming
+        // credential offers, so the service must be registered under the base
+        // URL. Android's walletcore keeps the full URL and can use the
+        // tenant-scoped path directly. Per-country UX (filtered docs list)
+        // is instead enforced client-side in
+        // WalletKitController.getScopedDocuments() via trustedCredentialVcts.
+        return [
+          .init(
+            credentialIssuerURL: "https://issuer.theaustraliahack.com",
+            clientId: "eudi-wallet-au",
+            keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
+            authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
+            usePAR: true,
+            useDpopIfSupported: true,
+            cacheIssuerMetadata: true
+          )
+        ]
+      case .IN:
+        return [
+          .init(
+            credentialIssuerURL: "https://issuer.theaustraliahack.com",
+            clientId: "eudi-wallet-in",
             keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
             authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
             usePAR: true,
@@ -170,7 +207,13 @@ struct WalletKitConfigImpl: WalletKitConfig {
       "pidissuerca02_nl",
       "pidissuerca02_pt",
       "pidissuerca02_ut",
-      "r45_staging"
+      "r45_staging",
+      // Self-signed CAs for our dev RPs. Without these, iOS rejects the signed
+      // authorization request (JAR) from verifier2 and the wallet surfaces a
+      // misleading "requested document is not available" error. Android trusts
+      // the same pair via R.raw.verifier2_theaustraliahack + rp_theaustraliahack.
+      "verifier2_theaustraliahack",
+      "rp_theaustraliahack"
     ]
     let certsData: [Data] = certificates.compactMap {
       Data(name: $0, ext: "der")
@@ -187,6 +230,15 @@ struct WalletKitConfigImpl: WalletKitConfig {
 
   var logFileName: String {
     return "eudi-ios-wallet-logs"
+  }
+
+  var rpCertificatesUrl: URL? {
+    switch configLogic.appBuildVariant {
+    case .AU, .IN, .DEV:
+      return URL(string: "https://verifier2.theaustraliahack.com/.well-known/rp-certificates")
+    case .DEMO:
+      return nil
+    }
   }
 
   var documentsCategories: DocumentCategories {

@@ -129,7 +129,27 @@ final actor WalletKitControllerImpl: WalletKitController {
 
     walletKit.uiCulture = Locale.current.systemLanguageCode
 
+    // NOTE: do NOT reassign walletKit.logFileName here — its didSet calls
+    // LoggingSystem.bootstrap, and AppDelegate has already bootstrapped with
+    // our NSLog + file MultiplexLogHandler. A second bootstrap triggers
+    // swift-log's preconditionFailure and crashes the app.
+
     wallet = walletKit
+
+    // Dynamic refresh of trusted reader certificates. Matches Android's
+    // `CoroutineScope(Dispatchers.IO).launch` — fire-and-forget; the
+    // statically-bundled certs seeded via `trustedReaderCertificates:` above
+    // stay authoritative until (and if) this fetch lands, so offline / first
+    // launch / misconfigured-URL all fall back to the bundle silently.
+    if let url = configLogic.rpCertificatesUrl {
+      let bundled = configLogic.readerConfig.trustedCerts
+      Task.detached(priority: .utility) { [weak walletKit] in
+        let fetched = await ReaderTrustStoreUpdater(pemUrl: url).fetchCertificates()
+        guard !fetched.isEmpty, let walletKit else { return }
+        walletKit.trustedReaderCertificates =
+          ReaderTrustStoreUpdater.deduplicateByFingerprint(bundled + fetched)
+      }
+    }
   }
 
   func resolveOfferUrlDocTypes(offerUri: String) async throws -> OfferedIssuanceModel {
@@ -324,11 +344,24 @@ final actor WalletKitControllerImpl: WalletKitController {
 
   func getScopedDocuments() async throws -> [ScopedDocument] {
 
-    try await withThrowingTaskGroup(of: [ScopedDocument].self) { group in
+    // For AU/IN, restrict the displayed catalog to the country's trusted
+    // VCTs. Needed because EudiWalletKit forces us to register the shared
+    // base issuer URL (see WalletKitConfig.swift) which returns the full
+    // multi-country list, not the tenant-filtered one Android sees.
+    let variant = (Bundle.main.object(forInfoDictionaryKey: "Build Variant") as? String) ?? ""
+    let trustedVcts: Set<String>? = {
+      switch variant {
+      case "AU": return ["urn:eudi:pid:1", "urn:au:gov:mygovid:pid:1", "urn:au:gov:dl:1", "urn:au:gov:medicare:1"]
+      case "IN": return ["urn:eudi:pid:1", "urn:in:gov:dl:1", "urn:in:gov:pan:1", "urn:in:gov:aadhaar:pid:1"]
+      default: return nil
+      }
+    }()
+
+    return try await withThrowingTaskGroup(of: [ScopedDocument].self) { group in
       for issuerName in configLogic.vciConfig.keys {
         group.addTask {
           let metadata = try await self.wallet.getIssuerMetadata(issuerName: issuerName)
-          return metadata.credentialsSupported.compactMap { credential in
+          let rawDocs: [ScopedDocument] = metadata.credentialsSupported.compactMap { credential in
             switch credential.value {
             case .msoMdoc(let config):
               let id = DocumentTypeIdentifier(rawValue: config.docType)
@@ -336,7 +369,7 @@ final actor WalletKitControllerImpl: WalletKitController {
                 name: config.credentialMetadata?.display.getName(fallback: credential.key.value) ?? credential.key.value,
                 issuer: metadata.credentialIssuerIdentifier.url.host.ifNilOrEmpty { issuerName },
                 configId: credential.key.value,
-                isPid: id == .mDocPid,
+                isPid: id.isPidLike,
                 docTypeIdentifier: id
               )
 
@@ -347,7 +380,7 @@ final actor WalletKitControllerImpl: WalletKitController {
                 name: config.credentialMetadata?.display.getName(fallback: credential.key.value) ?? credential.key.value,
                 issuer: metadata.credentialIssuerIdentifier.url.host.ifNilOrEmpty { issuerName },
                 configId: credential.key.value,
-                isPid: id == .sdJwtPid,
+                isPid: id.isPidLike,
                 docTypeIdentifier: id
               )
 
@@ -355,6 +388,10 @@ final actor WalletKitControllerImpl: WalletKitController {
               return nil
             }
           }
+          if let trustedVcts {
+            return rawDocs.filter { trustedVcts.contains($0.docTypeIdentifier.rawValue) }
+          }
+          return rawDocs
         }
       }
 

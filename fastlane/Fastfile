@@ -50,6 +50,37 @@ platform :ios do
   lane :deploy do
     ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] = "600"
 
+    # Patch the resolved Zlib SPM package to remove pkgConfig + providers. The
+    # Zlib package (pulled transitively via jose-swift) declares
+    #   .systemLibrary(pkgConfig: "zlib", providers: [.brew(["zlib"])])
+    # which makes Xcode's SPM inject -I/opt/homebrew/opt/zlib/include and
+    # -L/opt/homebrew/opt/zlib/lib into every dependent target. Those paths
+    # point at a macOS-only dylib, breaking iOS archives with:
+    #   "ld: building for 'iOS', but linking in dylib (..libz.dylib) built for 'macOS'"
+    # With pkgConfig and providers removed, SPM leaves Zlib as a plain
+    # .systemLibrary; the module map's `link "z"` still emits -lz and the
+    # linker resolves it against the iOS SDK's libz.tbd via -isysroot.
+    #
+    # We patch every resolved checkout because the file is overwritten any
+    # time Xcode re-resolves packages. Run unconditionally, harmless if already
+    # patched.
+    Dir.glob(File.expand_path("~/Library/Developer/Xcode/DerivedData/EudiReferenceWallet-*/SourcePackages/checkouts/zlib/Package.swift")).each do |pkg|
+      original = File.read(pkg)
+      # Nested-bracket-aware regex: the providers array contains entries like
+      # `.apt(["zlib"])` whose inner `["zlib"]` would trip a naive `[^\]]*\]`.
+      # Match one level of nesting explicitly.
+      patched = original.gsub(
+        /\.systemLibrary\(\s*name:\s*"Zlib",\s*pkgConfig:\s*"zlib",\s*providers:\s*\[(?:[^\[\]]|\[[^\[\]]*\])*\]\s*\)/m,
+        '.systemLibrary(name: "Zlib")'
+      )
+      if patched != original
+        # SPM checkouts are read-only — chmod +w before writing.
+        FileUtils.chmod("u+w", pkg)
+        File.write(pkg, patched)
+        UI.message "patched Zlib Package.swift: #{pkg}"
+      end
+    end
+
     git_pull
 
     connect_api = app_store_connect_api_key(
@@ -143,6 +174,48 @@ platform :ios do
       )
     end
   
+  end
+
+  desc "Register AU + IN App IDs and App Store Connect app records (idempotent)"
+  lane :register_app_ids do
+    connect_api = app_store_connect_api_key(
+      key_id: ENV["CONNECT_KEY_ID"],
+      issuer_id: ENV["CONNECT_ISSUER_ID"],
+      key_filepath: ENV["CONNECT_KEY_PATH"],
+      duration: 1200,
+      in_house: false,
+    )
+
+    [
+      ["eu.europa.ec.euidi.au", "EUDI Wallet AU"],
+      ["eu.europa.ec.euidi.in", "EUDI Wallet IN"]
+    ].each do |bundle_id, app_name|
+      UI.header "Registering #{app_name} (#{bundle_id})"
+      produce(
+        api_key: connect_api,
+        app_identifier: bundle_id,
+        app_name: app_name,
+        language: "English",
+        app_version: "1.0",
+        sku: bundle_id.gsub(".", "-"),
+        team_id: ENV["CONNECT_TEAM_ID"],
+        skip_itc: false,
+        skip_devcenter: false
+      )
+    end
+  end
+
+  desc "Build & deploy multi-country flavors (AU/IN) to TestFlight"
+  # EUDI is owned by the EU Commission's Apple team, so we cannot TestFlight it
+  # under Adelaidensis Pty Ltd. Testers who need the EU PID flavor install the
+  # official EUDI Wallet from the App Store or the upstream TestFlight.
+  lane :deploy_all do
+    flavors = ['au', 'in']
+    flavors.each do |flavor|
+      UI.header "Deploying flavor: #{flavor}"
+      Dotenv.overload(File.expand_path("../.env.#{flavor}", __FILE__))
+      deploy
+    end
   end
 
   desc "Release to github"

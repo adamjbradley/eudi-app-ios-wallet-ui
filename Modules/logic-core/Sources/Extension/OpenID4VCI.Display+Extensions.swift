@@ -18,7 +18,7 @@ import OpenID4VCI
 
 extension Array where Element == Display {
   func getName(fallback: String) -> String {
-    return self.first(where: ( {$0.locale == Locale.current}))?.name
+    return self.first(where: ({$0.locale == Locale.current}))?.name
     ?? self.first?.name
     ?? fallback
   }

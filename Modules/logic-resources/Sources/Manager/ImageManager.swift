@@ -267,7 +267,20 @@ final class ImageManager: ImageManagerProtocol {
     Image(systemName: ImageEnum.docFill.rawValue)
   }
   var logoEuDigitalIndentityWallet: Image {
-    Image(ImageEnum.logoEuDigitalIndentityWallet.rawValue, bundle: bundle)
+    Image(Self.flavorLogoName ?? ImageEnum.logoEuDigitalIndentityWallet.rawValue, bundle: bundle)
+  }
+
+  /// Returns the flavor-specific logo asset name, mirroring the Android
+  /// ic_launcher_foreground recolor pattern. DEMO/DEV keep the blue EUDI logo.
+  nonisolated(unsafe) private static let buildVariant: String =
+    (Bundle.main.object(forInfoDictionaryKey: "Build Variant") as? String) ?? ""
+
+  private static var flavorLogoName: String? {
+    switch buildVariant {
+    case "AU": return "logo-au-wallet"
+    case "IN": return "logo-in-wallet"
+    default:   return nil
+    }
   }
   var homeContract: Image {
     Image(ImageEnum.homeContract.rawValue, bundle: bundle)

@@ -6,6 +6,8 @@
 	<string>$(BUILD_TYPE)</string>
 	<key>Build Variant</key>
 	<string>$(BUILD_VARIANT)</string>
+	<key>CFBundleDisplayName</key>
+	<string>$(WALLET_APP_DISPLAY_NAME)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -33,5 +35,14 @@
 	<string>$(CORE_USER_AUTH)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>$(LAUNCH_BG_COLOR)</string>
+		<key>UIImageName</key>
+		<string>$(LAUNCH_LOGO)</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
