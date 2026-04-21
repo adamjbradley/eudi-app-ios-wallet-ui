@@ -71,6 +71,8 @@ platform :ios do
         '.systemLibrary(name: "Zlib")'
       )
       if patched != original
+        # SPM checkouts are read-only — chmod +w before writing.
+        FileUtils.chmod("u+w", pkg)
         File.write(pkg, patched)
         UI.message "patched Zlib Package.swift: #{pkg}"
       end
