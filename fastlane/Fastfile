@@ -64,6 +64,12 @@ platform :ios do
     # We patch every resolved checkout because the file is overwritten any
     # time Xcode re-resolves packages. Run unconditionally, harmless if already
     # patched.
+    #
+    # Resolve SPM packages first so the DerivedData/SourcePackages tree exists
+    # for fresh worktrees (otherwise the glob below finds nothing and the
+    # macOS-Zlib link error slips into build_app). Harmless if already resolved.
+    sh("xcodebuild -resolvePackageDependencies -project ../EudiReferenceWallet.xcodeproj -scheme \"#{ENV['APP_SCHEME']}\" -skipPackagePluginValidation -skipMacroValidation")
+
     Dir.glob(File.expand_path("~/Library/Developer/Xcode/DerivedData/EudiReferenceWallet-*/SourcePackages/checkouts/zlib/Package.swift")).each do |pkg|
       original = File.read(pkg)
       # Nested-bracket-aware regex: the providers array contains entries like
