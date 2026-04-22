@@ -127,23 +127,32 @@ struct WalletKitConfigImpl: WalletKitConfig {
           )
         ]
       case .AU:
-        // Point at the AU tenant's scoped OID4VCI endpoint so wallet-initiated
-        // /authorize works. walt.id's root /draft13/authorize is a shared
-        // multi-tenant endpoint that requires issuer_state (only present in
-        // offer-initiated flows). Per-tenant endpoints accept wallet-initiated
-        // requests without issuer_state. EudiWalletKit's getBaseUrl() path
-        // stripping only applies to offer-routing, not to the configured
-        // issuer URL used for fetching metadata + driving /par + /authorize.
-        return [
+        // Register every AU issuer tenant separately so "Add document" shows
+        // credentials grouped by the real issuing authority (MyGovID from
+        // ADIO, mDL from Transport for NSW, Medicare from Services Australia)
+        // instead of everything appearing to come from a single tenant.
+        //
+        // Each tenant uses its tenant-scoped OID4VCI endpoint so wallet-
+        // initiated /authorize works (walt.id's root /draft13/authorize
+        // requires issuer_state, only present in offer-initiated flows).
+        let commonAU: (String, String) -> OpenId4VciConfiguration = { issuerPath, clientId in
           .init(
-            credentialIssuerURL: "https://issuer.theaustraliahack.com/issuers/4bb447ff-661f-4589-bf17-6d97d2a322be/draft13",
-            clientId: "eudi-wallet-au",
+            credentialIssuerURL: issuerPath,
+            clientId: clientId,
             keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
             authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
             usePAR: true,
             useDpopIfSupported: true,
             cacheIssuerMetadata: true
           )
+        }
+        return [
+          // Australian Digital Identity Office — MyGovID PID (SD-JWT + mdoc)
+          commonAU("https://issuer.theaustraliahack.com/issuers/4bb447ff-661f-4589-bf17-6d97d2a322be/draft13", "eudi-wallet-au"),
+          // Transport for NSW — mDL (mdoc)
+          commonAU("https://issuer.theaustraliahack.com/issuers/b7c6880b-c614-400e-9544-ba8182fb0aec/draft13", "eudi-wallet-au"),
+          // Services Australia — Medicare (SD-JWT + mdoc)
+          commonAU("https://issuer.theaustraliahack.com/issuers/17e31dd0-8cee-4d7f-be0a-a06d86ddfd03/draft13", "eudi-wallet-au")
         ]
       case .IN:
         return [
@@ -184,14 +193,12 @@ struct WalletKitConfigImpl: WalletKitConfig {
     return openId4VciConfigurations.reduce(
       into: [String: OpenId4VciConfiguration]()
     ) { dict, config in
-      guard
-        let issuer = config.credentialIssuerURL,
-        let url = URL(string: issuer),
-        let host = url.host
-      else {
-        return
-      }
-      dict[host] = config
+      // Key by full credentialIssuerURL (not host) so multiple tenants
+      // sharing the same host — e.g. ADIO, Transport for NSW, and Services
+      // Australia all at issuer.theaustraliahack.com — register as
+      // distinct services in OpenId4VCIServiceRegistry and don't collide.
+      guard let issuer = config.credentialIssuerURL else { return }
+      dict[issuer] = config
     }
   }
 

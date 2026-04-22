@@ -13,8 +13,8 @@ let package = Package(
   ],
   dependencies: [
     .package(
-      url: "https://github.com/eu-digital-identity-wallet/eudi-lib-ios-wallet-kit.git",
-      exact: "0.19.4"
+      url: "https://github.com/adamjbradley/eudi-lib-ios-wallet-kit.git",
+      exact: "0.19.4-waltid.1"
     ),
     .package(
       name: "logic-resources",
