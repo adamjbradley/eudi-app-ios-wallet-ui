@@ -350,16 +350,16 @@ final actor WalletKitControllerImpl: WalletKitController {
       for issuerName in configLogic.vciConfig.keys {
         group.addTask {
           let metadata = try await self.wallet.getIssuerMetadata(issuerName: issuerName)
-          let issuerDisplay = metadata.display.first?.name
-            ?? metadata.credentialIssuerIdentifier.url.host
-            ?? issuerName
+          // issuer is the OpenId4VCIServiceRegistry key (full credentialIssuerURL),
+          // because it's threaded back into issueDocument(issuerName:) for lookup.
+          // Display name from metadata.display is intentionally not used here.
           return metadata.credentialsSupported.compactMap { credential in
             switch credential.value {
             case .msoMdoc(let config):
               let id = DocumentTypeIdentifier(rawValue: config.docType)
               return ScopedDocument(
                 name: config.credentialMetadata?.display.getName(fallback: credential.key.value) ?? credential.key.value,
-                issuer: issuerDisplay,
+                issuer: issuerName,
                 configId: credential.key.value,
                 isPid: id.isPidLike,
                 docTypeIdentifier: id
@@ -370,7 +370,7 @@ final actor WalletKitControllerImpl: WalletKitController {
               let id = DocumentTypeIdentifier(rawValue: vct)
               return ScopedDocument(
                 name: config.credentialMetadata?.display.getName(fallback: credential.key.value) ?? credential.key.value,
-                issuer: issuerDisplay,
+                issuer: issuerName,
                 configId: credential.key.value,
                 isPid: id.isPidLike,
                 docTypeIdentifier: id
