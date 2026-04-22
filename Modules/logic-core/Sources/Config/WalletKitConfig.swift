@@ -127,15 +127,16 @@ struct WalletKitConfigImpl: WalletKitConfig {
           )
         ]
       case .AU:
-        // EudiWalletKit strips paths via getBaseUrl() when routing incoming
-        // credential offers, so the service must be registered under the base
-        // URL. Android's walletcore keeps the full URL and can use the
-        // tenant-scoped path directly. Per-country UX (filtered docs list)
-        // is instead enforced client-side in
-        // WalletKitController.getScopedDocuments() via trustedCredentialVcts.
+        // Point at the AU tenant's scoped OID4VCI endpoint so wallet-initiated
+        // /authorize works. walt.id's root /draft13/authorize is a shared
+        // multi-tenant endpoint that requires issuer_state (only present in
+        // offer-initiated flows). Per-tenant endpoints accept wallet-initiated
+        // requests without issuer_state. EudiWalletKit's getBaseUrl() path
+        // stripping only applies to offer-routing, not to the configured
+        // issuer URL used for fetching metadata + driving /par + /authorize.
         return [
           .init(
-            credentialIssuerURL: "https://issuer.theaustraliahack.com",
+            credentialIssuerURL: "https://issuer.theaustraliahack.com/issuers/4bb447ff-661f-4589-bf17-6d97d2a322be/draft13",
             clientId: "eudi-wallet-au",
             keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
             authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
@@ -147,7 +148,7 @@ struct WalletKitConfigImpl: WalletKitConfig {
       case .IN:
         return [
           .init(
-            credentialIssuerURL: "https://issuer.theaustraliahack.com",
+            credentialIssuerURL: "https://issuer.theaustraliahack.com/issuers/94da79a8-15d2-4060-a4db-69b01a8057d2/draft13",
             clientId: "eudi-wallet-in",
             keyAttestationsConfig: .init(walletAttestationsProvider: walletKitAttestationProvider),
             authFlowRedirectionURI: URL(string: "eu.europa.ec.euidi://authorization")!,
