@@ -16,6 +16,7 @@
 import Foundation
 import logic_business
 import EudiWalletKit
+import OpenID4VP
 
 struct ReaderConfig: Sendable {
   public let trustedCerts: [Data]
@@ -203,7 +204,19 @@ struct WalletKitConfigImpl: WalletKitConfig {
   }
 
   var vpConfig: OpenId4VpConfiguration {
-    .init(clientIdSchemes: [.x509SanDns, .x509Hash])
+    // Advertise both the spec-default "authorization" and EWC RFC008 "payment_data"
+    // transaction_data types so the walt.id verifier's PWA payment flow passes
+    // `TransactionData.isSupported(...)` and the wallet commits to the transaction
+    // via `transaction_data_hashes` in its KB-JWT (per OID4VP §5.1 + RFC008 §5.7).
+    let supported: [SupportedTransactionDataType] = [
+      try! .init(type: try! .init(value: "authorization"), hashAlgorithms: Set([.sha256])),
+      try! .init(type: try! .init(value: "payment_data"),  hashAlgorithms: Set([.sha256]))
+    ]
+    return .init(
+      clientIdSchemes: [.x509SanDns, .x509Hash],
+      responseEncryptionConfiguration: nil,
+      supportedTransactionDataTypes: supported
+    )
   }
 
   var readerConfig: ReaderConfig {
