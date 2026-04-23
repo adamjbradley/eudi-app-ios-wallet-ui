@@ -213,14 +213,21 @@ struct WalletKitConfigImpl: WalletKitConfig {
     // transaction_data types so the walt.id verifier's PWA payment flow passes
     // `TransactionData.isSupported(...)` and the wallet commits to the transaction
     // via `transaction_data_hashes` in its KB-JWT (per OID4VP §5.1 + RFC008 §5.7).
-    let supported: [SupportedTransactionDataType] = [
-      try! .init(type: try! .init(value: "authorization"), hashAlgorithms: Set([.sha256])),
-      try! .init(type: try! .init(value: "payment_data"),  hashAlgorithms: Set([.sha256]))
-    ]
+    // Inputs are compile-time literals with sha256 in the algorithm set, so the
+    // throwing inits cannot fail — fatalError on the impossible branch rather
+    // than using `try!` (which would trip the force_try lint rule).
+    func supported(_ type: String) -> SupportedTransactionDataType {
+      do {
+        let typeValue = try TransactionDataType(value: type)
+        return try SupportedTransactionDataType(type: typeValue, hashAlgorithms: Set([.sha256]))
+      } catch {
+        fatalError("SupportedTransactionDataType init failed unexpectedly: \(error)")
+      }
+    }
     return .init(
       clientIdSchemes: [.x509SanDns, .x509Hash],
       responseEncryptionConfiguration: nil,
-      supportedTransactionDataTypes: supported
+      supportedTransactionDataTypes: [supported("authorization"), supported("payment_data")]
     )
   }
 
