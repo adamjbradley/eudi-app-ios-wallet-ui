@@ -16,6 +16,7 @@
 import Foundation
 import logic_business
 import EudiWalletKit
+import OpenID4VP
 
 struct ReaderConfig: Sendable {
   public let trustedCerts: [Data]
@@ -152,7 +153,12 @@ struct WalletKitConfigImpl: WalletKitConfig {
           // Transport for NSW — mDL (mdoc)
           commonAU("https://issuer.theaustraliahack.com/issuers/b7c6880b-c614-400e-9544-ba8182fb0aec/draft13", "eudi-wallet-au"),
           // Services Australia — Medicare (SD-JWT + mdoc)
-          commonAU("https://issuer.theaustraliahack.com/issuers/17e31dd0-8cee-4d7f-be0a-a06d86ddfd03/draft13", "eudi-wallet-au")
+          commonAU("https://issuer.theaustraliahack.com/issuers/17e31dd0-8cee-4d7f-be0a-a06d86ddfd03/draft13", "eudi-wallet-au"),
+          // Bank of Demo PSP — Payment Wallet Attestation (SD-JWT)
+          // Required so the /enroll flow's step-2 credential offer resolves
+          // to a registered OpenId4VCI service. Without this, openid4vci-swift
+          // surfaces "Unable to fetch credential offer request by reference".
+          commonAU("https://issuer.theaustraliahack.com/issuers/a84e7c3a-b399-48e9-9345-2d8f062c614f/draft13", "eudi-wallet-au")
         ]
       case .IN:
         return [
@@ -203,7 +209,19 @@ struct WalletKitConfigImpl: WalletKitConfig {
   }
 
   var vpConfig: OpenId4VpConfiguration {
-    .init(clientIdSchemes: [.x509SanDns, .x509Hash])
+    // Advertise both the spec-default "authorization" and EWC RFC008 "payment_data"
+    // transaction_data types so the walt.id verifier's PWA payment flow passes
+    // `TransactionData.isSupported(...)` and the wallet commits to the transaction
+    // via `transaction_data_hashes` in its KB-JWT (per OID4VP §5.1 + RFC008 §5.7).
+    let supported: [SupportedTransactionDataType] = [
+      try! .init(type: try! .init(value: "authorization"), hashAlgorithms: Set([.sha256])),
+      try! .init(type: try! .init(value: "payment_data"),  hashAlgorithms: Set([.sha256]))
+    ]
+    return .init(
+      clientIdSchemes: [.x509SanDns, .x509Hash],
+      responseEncryptionConfiguration: nil,
+      supportedTransactionDataTypes: supported
+    )
   }
 
   var readerConfig: ReaderConfig {
