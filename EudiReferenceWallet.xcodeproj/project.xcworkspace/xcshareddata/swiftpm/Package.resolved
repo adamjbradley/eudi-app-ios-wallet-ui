@@ -1,5 +1,5 @@
 {
-  "originHash" : "cb44eacd6f31f808c7205f7c05af8e7c2bd7333ce2067168cb8b7dd85deefc09",
+  "originHash" : "6aefd56bde5225c373578db9088bc7b64e7e2554d29cd81f49e50a0b507dae1b",
   "pins" : [
     {
       "identity" : "activityindicatorview",
@@ -168,8 +168,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamjbradley/eudi-lib-ios-wallet-kit.git",
       "state" : {
-        "revision" : "2a4845146923e87561772a269a2773516d56db10",
-        "version" : "0.19.4-waltid.1"
+        "revision" : "06335bc4338681f9a8ecffe2ecb8c8ea2f732f90",
+        "version" : "0.19.4-waltid.2"
       }
     },
     {
